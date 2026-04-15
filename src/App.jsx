@@ -500,6 +500,7 @@ export default function App() {
                 <div>Status</div>
                 <div>Feet</div>
                 <div>Reference</div>
+                <div>Attachments</div>
                 <div>Actions</div>
               </div>
 
@@ -514,6 +515,23 @@ export default function App() {
                   <div><span style={statusChip}>Finished</span></div>
                   <div>{record.footage}</div>
                   <div>{record.reference || "—"}</div>
+                  <div>
+                    <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>
+                      {record.attachments?.length ? `${record.attachments.length} file(s)` : "No files"}
+                    </div>
+                    <label style={uploadButton}>
+                      Attach bore log
+                      <input
+                        type="file"
+                        multiple
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleUploadFile(record.id, e.target.files);
+                        }}
+                      />
+                    </label>
+                  </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button style={tableButton} onClick={(e) => { e.stopPropagation(); handleEditProduction(record); }}>Edit</button>
                     <button style={tableButton} onClick={(e) => { e.stopPropagation(); handleDeleteProduction(record.id); }}>Delete</button>
@@ -964,7 +982,7 @@ const tableCard = {
 
 const tableHeaderOld = {
   display: "grid",
-  gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr 0.6fr 0.8fr 1fr",
+  gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr 0.6fr 0.8fr 1.1fr 1fr",
   gap: 12,
   padding: 14,
   background: "#f8fafc",
@@ -974,7 +992,7 @@ const tableHeaderOld = {
 
 const tableRowOld = {
   display: "grid",
-  gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr 0.6fr 0.8fr 1fr",
+  gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr 0.6fr 0.8fr 1.1fr 1fr",
   gap: 12,
   padding: 14,
   borderTop: "1px solid #e5e7eb",
@@ -1006,4 +1024,16 @@ const tableButton = {
   borderRadius: 10,
   padding: "8px 10px",
   cursor: "pointer",
+};
+
+
+const uploadButton = {
+  display: "inline-block",
+  background: "#fff",
+  border: "1px solid #d1d5db",
+  borderRadius: 10,
+  padding: "8px 10px",
+  cursor: "pointer",
+  fontSize: 12,
+  textAlign: "center",
 };
