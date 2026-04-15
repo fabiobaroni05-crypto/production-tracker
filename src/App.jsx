@@ -17,7 +17,7 @@ const emptyProjectForm = {
   startStation: "00+00",
   endStation: "11+00",
   status: "Active",
-  comment: "",
+  comment: "Project paused. Do not renew tickets until permits are approved.",
 };
 
 const emptyProductionForm = {
@@ -25,7 +25,18 @@ const emptyProductionForm = {
   date: "",
   start: "",
   end: "",
+  reference: "",
   comments: "",
+};
+
+const emptyTicketForm = {
+  ticketNumber: "",
+  areaSection: "",
+  status: "Open",
+  pendingUtility: "",
+  expirationDate: "",
+  coverage: "",
+  notes: "",
 };
 
 function stationToFeet(station) {
@@ -175,12 +186,12 @@ export default function App() {
       id: 1,
       ...emptyProjectForm,
       name: "test",
-      comment: "Project paused. Do not renew tickets until permits are approved.",
     },
   ]);
   const [selectedProjectId, setSelectedProjectId] = useState(1);
 
   const [projectForm, setProjectForm] = useState(projects[0]);
+
   const [productionRecords, setProductionRecords] = useState([
     {
       id: 101,
@@ -189,6 +200,7 @@ export default function App() {
       start: "00+00",
       end: "01+00",
       footage: 100,
+      reference: "",
       comments: "No comments added.",
       attachments: [],
     },
@@ -199,10 +211,14 @@ export default function App() {
       start: "01+00",
       end: "02+00",
       footage: 100,
+      reference: "",
       comments: "No comments added.",
       attachments: [],
     },
   ]);
+
+  const [ticketRecords, setTicketRecords] = useState([]);
+  const [ticketForm, setTicketForm] = useState(emptyTicketForm);
 
   const [productionForm, setProductionForm] = useState(emptyProductionForm);
   const [editingRecordId, setEditingRecordId] = useState(null);
@@ -260,6 +276,9 @@ export default function App() {
     setProjects((prev) => [project, ...prev]);
     setSelectedProjectId(id);
     setProjectForm(project);
+    setProductionRecords([]);
+    setTicketRecords([]);
+    setSelectedRecordId(null);
   };
 
   const handleSaveProduction = () => {
@@ -268,12 +287,14 @@ export default function App() {
       return;
     }
 
+    const existingAttachments =
+      productionRecords.find((record) => record.id === editingRecordId)?.attachments || [];
+
     const payload = {
       id: editingRecordId || Date.now(),
       ...productionForm,
       footage: getProductionFootage(productionForm.start, productionForm.end),
-      attachments:
-        productionRecords.find((record) => record.id === editingRecordId)?.attachments || [],
+      attachments: existingAttachments,
     };
 
     if (editingRecordId) {
@@ -298,6 +319,7 @@ export default function App() {
       date: record.date,
       start: record.start,
       end: record.end,
+      reference: record.reference || "",
       comments: record.comments || "",
     });
   };
@@ -314,6 +336,32 @@ export default function App() {
       setEditingRecordId(null);
       setProductionForm(emptyProductionForm);
     }
+  };
+
+  const handleUploadFile = (recordId, files) => {
+    const fileNames = Array.from(files || []).map((file) => file.name);
+    if (!fileNames.length) return;
+
+    setProductionRecords((prev) =>
+      prev.map((record) =>
+        record.id === recordId
+          ? { ...record, attachments: [...(record.attachments || []), ...fileNames] }
+          : record
+      )
+    );
+  };
+
+  const saveTicket = () => {
+    if (!ticketForm.ticketNumber && !ticketForm.areaSection) {
+      alert("Add at least ticket number or area / section.");
+      return;
+    }
+
+    setTicketRecords((prev) => [
+      ...prev,
+      { id: Date.now(), ...ticketForm },
+    ]);
+    setTicketForm(emptyTicketForm);
   };
 
   return (
@@ -403,19 +451,23 @@ export default function App() {
         </div>
 
         <div style={reviewPanel}>
-          <h2 style={{ marginTop: 0 }}>Supervisor Review</h2>
+          <div style={reviewHeaderCard}>
+            <h2 style={{ marginTop: 0, marginBottom: 0 }}>Project Review</h2>
+          </div>
 
           <div style={reviewCard}>
             <div style={reviewTitle}>Project Overview</div>
 
             <div style={reviewSection}>
-              <div style={smallLabel}>Project status</div>
-              <span style={metaPill}>{selectedProject?.status || "Active"}</span>
+              <div style={bigLabel}>Project status</div>
+              <span style={statusBadge}>{selectedProject?.status || "Active"}</span>
             </div>
 
             <div style={reviewSection}>
-              <div style={smallLabel}>Project comment</div>
-              <div>{selectedProject?.comment || "No project comment added."}</div>
+              <div style={bigLabel}>Project comment</div>
+              <div style={smallCommentText}>
+                {selectedProject?.comment || "No project comment added."}
+              </div>
             </div>
 
             <div style={reviewSection}>
@@ -431,18 +483,18 @@ export default function App() {
             </div>
 
             <div style={reviewSection}>
-              <div style={smallLabel}>Reference</div>
-              <div>No reference added.</div>
+              <div style={bigLabel}>Reference</div>
+              <div style={smallCommentText}>{selectedRecord?.reference || "No reference added."}</div>
             </div>
 
             <div style={reviewSection}>
-              <div style={smallLabel}>Comments</div>
-              <div>{selectedRecord?.comments || "No comments added."}</div>
+              <div style={bigLabel}>Comments</div>
+              <div style={smallCommentText}>{selectedRecord?.comments || "No comments added."}</div>
             </div>
 
             <div style={reviewSection}>
-              <div style={smallLabel}>Attachments</div>
-              <div>
+              <div style={bigLabel}>Attachments</div>
+              <div style={smallCommentText}>
                 {selectedRecord?.attachments?.length
                   ? selectedRecord.attachments.join(", ")
                   : "No attachments."}
@@ -489,12 +541,17 @@ export default function App() {
 
           <div style={reviewCard}>
             <div style={reviewTitle}>Ticket Readiness</div>
-            <div>No ticket records yet.</div>
-          </div>
-
-          <div style={reviewCard}>
-            <div style={reviewTitle}>Ticket Review</div>
-            <div>No ticket selected yet.</div>
+            {ticketRecords.length ? (
+              ticketRecords.map((ticket) => (
+                <div key={ticket.id} style={gapRow}>
+                  <strong>{ticket.ticketNumber || "No ticket number"}</strong>
+                  <div>{ticket.areaSection || "No area / section"}</div>
+                  <div>{ticket.status}</div>
+                </div>
+              ))
+            ) : (
+              <div>No ticket records yet.</div>
+            )}
           </div>
         </div>
       </div>
@@ -586,8 +643,8 @@ export default function App() {
           </div>
 
           <div style={sectionCard}>
-            <h2 style={{ marginTop: 0 }}>Add Section Record</h2>
-            <p style={{ marginTop: 0, color: "#4b5563", fontSize: 14 }}>
+            <h2 style={{ marginTop: 0, textAlign: "center" }}>Add Section Record</h2>
+            <p style={{ marginTop: 0, color: "#4b5563", fontSize: 14, textAlign: "center" }}>
               Use this for your control only. Crew colors are automatic and stay consistent inside the project.
             </p>
 
@@ -636,6 +693,15 @@ export default function App() {
               </div>
 
               <div style={{ gridColumn: "1 / -1" }}>
+                <div style={smallLabel}>Reference</div>
+                <input
+                  style={inputStyle}
+                  value={productionForm.reference}
+                  onChange={(e) => setProductionForm({ ...productionForm, reference: e.target.value })}
+                />
+              </div>
+
+              <div style={{ gridColumn: "1 / -1" }}>
                 <div style={smallLabel}>Comments</div>
                 <textarea
                   style={{ ...inputStyle, minHeight: 90 }}
@@ -664,11 +730,14 @@ export default function App() {
               <div style={smallLabel}>Saved Section Records</div>
 
               <div style={tableCard}>
-                <div style={tableHeader}>
+                <div style={tableHeaderWide}>
                   <div>Crew</div>
-                  <div>Range</div>
                   <div>Date</div>
+                  <div>Range</div>
                   <div>Feet</div>
+                  <div>Reference</div>
+                  <div>Bore logs</div>
+                  <div>Upload</div>
                   <div>Actions</div>
                 </div>
 
@@ -677,7 +746,7 @@ export default function App() {
                     key={record.id}
                     onClick={() => setSelectedRecordId(record.id)}
                     style={{
-                      ...tableRow,
+                      ...tableRowWide,
                       background: selectedRecordId === record.id ? "#f8fafc" : "#fff",
                       cursor: "pointer",
                     }}
@@ -694,10 +763,34 @@ export default function App() {
                       />
                       {record.crew}
                     </div>
-                    <div>{record.start} to {record.end}</div>
                     <div>{record.date}</div>
+                    <div>{record.start} to {record.end}</div>
                     <div>{record.footage}</div>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div>{record.reference || "—"}</div>
+                    <div>
+                      {record.attachments?.length ? (
+                        record.attachments.map((fileName, index) => (
+                          <div key={index} style={{ fontSize: 12 }}>{fileName}</div>
+                        ))
+                      ) : (
+                        <span style={{ color: "#6b7280" }}>No files</span>
+                      )}
+                    </div>
+                    <div>
+                      <label style={uploadButton}>
+                        Upload bore log
+                        <input
+                          type="file"
+                          multiple
+                          style={{ display: "none" }}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleUploadFile(record.id, e.target.files);
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button
                         style={tableButton}
                         onClick={(e) => {
@@ -719,6 +812,85 @@ export default function App() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 28 }}>
+              <h2 style={{ textAlign: "center", marginBottom: 20 }}>811 Ticket Control</h2>
+
+              <div style={formGrid3}>
+                <div>
+                  <div style={smallLabel}>Ticket number</div>
+                  <input
+                    style={inputStyle}
+                    value={ticketForm.ticketNumber}
+                    onChange={(e) => setTicketForm({ ...ticketForm, ticketNumber: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <div style={smallLabel}>Area / Section</div>
+                  <input
+                    style={inputStyle}
+                    value={ticketForm.areaSection}
+                    onChange={(e) => setTicketForm({ ...ticketForm, areaSection: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <div style={smallLabel}>Status</div>
+                  <select
+                    style={inputStyle}
+                    value={ticketForm.status}
+                    onChange={(e) => setTicketForm({ ...ticketForm, status: e.target.value })}
+                  >
+                    <option>Open</option>
+                    <option>Pending</option>
+                    <option>Clear</option>
+                    <option>Expired</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div style={smallLabel}>Pending utility</div>
+                  <input
+                    style={inputStyle}
+                    value={ticketForm.pendingUtility}
+                    onChange={(e) => setTicketForm({ ...ticketForm, pendingUtility: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <div style={smallLabel}>Expiration date</div>
+                  <input
+                    type="date"
+                    style={inputStyle}
+                    value={ticketForm.expirationDate}
+                    onChange={(e) => setTicketForm({ ...ticketForm, expirationDate: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div style={smallLabel}>Coverage</div>
+                  <input
+                    style={inputStyle}
+                    value={ticketForm.coverage}
+                    onChange={(e) => setTicketForm({ ...ticketForm, coverage: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div style={smallLabel}>Notes</div>
+                  <textarea
+                    style={{ ...inputStyle, minHeight: 100 }}
+                    value={ticketForm.notes}
+                    onChange={(e) => setTicketForm({ ...ticketForm, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ ...actionRow, justifyContent: "center", marginTop: 14 }}>
+                <button style={primaryBtn} onClick={saveTicket}>Save ticket</button>
               </div>
             </div>
           </div>
@@ -779,6 +951,13 @@ const reviewPanel = {
   top: 20,
 };
 
+const reviewHeaderCard = {
+  background: "#fff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 18,
+  padding: 18,
+};
+
 const reviewCard = {
   background: "#fff",
   border: "1px solid #e5e7eb",
@@ -809,6 +988,12 @@ const formGrid2 = {
   gap: 14,
 };
 
+const formGrid3 = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr 1fr",
+  gap: 14,
+};
+
 const metaPillRow = {
   display: "flex",
   gap: 8,
@@ -822,6 +1007,15 @@ const metaPill = {
   borderRadius: 999,
   background: "#eef2ff",
   fontSize: 13,
+};
+
+const statusBadge = {
+  display: "inline-block",
+  padding: "5px 10px",
+  borderRadius: 999,
+  background: "#eef2ff",
+  fontSize: 11,
+  fontWeight: 600,
 };
 
 const statsRow = {
@@ -947,6 +1141,18 @@ const smallLabel = {
   marginBottom: 6,
 };
 
+const bigLabel = {
+  fontSize: 16,
+  fontWeight: 700,
+  marginBottom: 8,
+};
+
+const smallCommentText = {
+  fontSize: 13,
+  color: "#4b5563",
+  lineHeight: 1.45,
+};
+
 const summaryRow = {
   display: "flex",
   justifyContent: "space-between",
@@ -968,9 +1174,9 @@ const tableCard = {
   overflow: "hidden",
 };
 
-const tableHeader = {
+const tableHeaderWide = {
   display: "grid",
-  gridTemplateColumns: "1fr 1.3fr 1fr 0.6fr 1fr",
+  gridTemplateColumns: "1fr 1fr 1.2fr 0.7fr 1fr 1fr 1fr 1fr",
   gap: 12,
   padding: 14,
   background: "#f8fafc",
@@ -978,9 +1184,9 @@ const tableHeader = {
   fontSize: 13,
 };
 
-const tableRow = {
+const tableRowWide = {
   display: "grid",
-  gridTemplateColumns: "1fr 1.3fr 1fr 0.6fr 1fr",
+  gridTemplateColumns: "1fr 1fr 1.2fr 0.7fr 1fr 1fr 1fr 1fr",
   gap: 12,
   padding: 14,
   borderTop: "1px solid #e5e7eb",
@@ -993,4 +1199,15 @@ const tableButton = {
   borderRadius: 10,
   padding: "8px 10px",
   cursor: "pointer",
+};
+
+const uploadButton = {
+  display: "inline-block",
+  background: "#fff",
+  border: "1px solid #d1d5db",
+  borderRadius: 12,
+  padding: "8px 12px",
+  cursor: "pointer",
+  fontSize: 13,
+  textAlign: "center",
 };
