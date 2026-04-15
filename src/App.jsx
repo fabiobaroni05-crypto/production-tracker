@@ -481,6 +481,91 @@ export default function App() {
           </div>
 
           <div style={sectionCard}>
+            <h2 style={{ marginTop: 0, textAlign: "center" }}>Add Section Record</h2>
+            <p style={{ marginTop: 0, color: "#4b5563", fontSize: 14, textAlign: "center" }}>
+              Use this for your control only. Crew colors are automatic and stay consistent inside the project.
+            </p>
+
+            <div style={formGrid2}>
+              <div>
+                <div style={smallLabel}>Crew</div>
+                <select
+                  style={inputStyle}
+                  value={productionForm.crew}
+                  onChange={(e) => setProductionForm({ ...productionForm, crew: e.target.value })}
+                >
+                  <option value="">Select crew</option>
+                  <option>MIGUEL</option>
+                  <option>NALDI</option>
+                  <option>YOYI</option>
+                  <option>FRANK</option>
+                </select>
+              </div>
+
+              <div>
+                <div style={smallLabel}>Date</div>
+                <input
+                  type="date"
+                  style={inputStyle}
+                  value={productionForm.date}
+                  onChange={(e) => setProductionForm({ ...productionForm, date: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <div style={smallLabel}>Start station</div>
+                <input
+                  style={inputStyle}
+                  value={productionForm.start}
+                  onChange={(e) => setProductionForm({ ...productionForm, start: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <div style={smallLabel}>End station</div>
+                <input
+                  style={inputStyle}
+                  value={productionForm.end}
+                  onChange={(e) => setProductionForm({ ...productionForm, end: e.target.value })}
+                />
+              </div>
+
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={smallLabel}>Reference</div>
+                <input
+                  style={inputStyle}
+                  value={productionForm.reference}
+                  onChange={(e) => setProductionForm({ ...productionForm, reference: e.target.value })}
+                />
+              </div>
+
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={smallLabel}>Comments</div>
+                <textarea
+                  style={{ ...inputStyle, minHeight: 90 }}
+                  value={productionForm.comments}
+                  onChange={(e) => setProductionForm({ ...productionForm, comments: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div style={{ ...actionRow, marginTop: 14 }}>
+              <button style={primaryBtn} onClick={handleSaveProduction}>
+                {editingRecordId ? "Update Section" : "Save Section"}
+              </button>
+              <button
+                style={lightBtn}
+                onClick={() => {
+                  setProductionForm(emptyProductionForm);
+                  setEditingRecordId(null);
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div style={sectionCard}>
             <div style={smallLabel}>Filter production by crew</div>
             <select style={{ ...inputStyle, maxWidth: 260 }} value={crewFilter} onChange={(e) => setCrewFilter(e.target.value)}>
               <option>All crews selected</option>
