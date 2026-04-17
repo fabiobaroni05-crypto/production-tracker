@@ -156,43 +156,41 @@ function getTicketStatusStyle(status) {
 }
 
 function ProductionLine({ project, records }) {
-  const progress = getProjectProgress(project, records);
-  const total = Math.max(progress.total || 0, 1);
-  const percent = Math.max(0, Math.min((progress.finished / total) * 100, 100));
+  if (project.trackingType === "Station based") {
+    const start = stationToFeet(project.startStation);
+    const end = stationToFeet(project.endStation);
+    const total = Math.max(end - start, 1);
 
-  const leftLabel =
-    project.trackingType === "Station based"
-      ? project.startStation
-      : "0 ft";
+    return (
+      <div>
+        <div style={lineLabelRow}>
+          <span>{project.startStation}</span>
+          <span>{project.endStation}</span>
+        </div>
 
-  const rightLabel =
-    project.trackingType === "Station based"
-      ? project.endStation
-      : formatFeet(project.totalFootage || 0);
+        <div style={lineTrack}>
+          {records.map((record) => {
+            const left = ((stationToFeet(record.start) - start) / total) * 100;
+            const width = (getProductionFootage(record.start, record.end) / total) * 100;
 
-  return (
-    <div>
-      <div style={lineLabelRow}>
-        <span>{leftLabel}</span>
-        <span>{rightLabel}</span>
-      </div>
+            return (
+              <div
+                key={record.id}
+                title={`${record.crew}: ${record.start} to ${record.end}`}
+                style={{
+                  position: "absolute",
+                  left: `${left}%`,
+                  width: `${Math.max(width, 1)}%`,
+                  top: 0,
+                  bottom: 0,
+                  background: getCrewColor(record.crew),
+                  borderRadius: 999,
+                }}
+              />
+            );
+          })}
+        </div>
 
-      <div style={lineTrack}>
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: `${percent}%`,
-            background: "#22c55e",
-            borderRadius: 999,
-            transition: "width 0.3s ease",
-          }}
-        />
-      </div>
-
-      {project.trackingType === "Station based" && (
         <div style={legendRow}>
           {Object.keys(getCrewSummary(records)).map((crew) => (
             <div key={crew} style={legendPill}>
@@ -209,7 +207,35 @@ function ProductionLine({ project, records }) {
             </div>
           ))}
         </div>
-      )}
+      </div>
+    );
+  }
+
+  const progress = getProjectProgress(project, records);
+  const total = Math.max(progress.total || 0, 1);
+  const percent = Math.max(0, Math.min((progress.finished / total) * 100, 100));
+
+  return (
+    <div>
+      <div style={lineLabelRow}>
+        <span>0 ft</span>
+        <span>{formatFeet(project.totalFootage || 0)}</span>
+      </div>
+
+      <div style={lineTrack}>
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: `${percent}%`,
+            background: "#22c55e",
+            borderRadius: 999,
+            transition: "width 0.3s ease",
+          }}
+        />
+      </div>
     </div>
   );
 }
