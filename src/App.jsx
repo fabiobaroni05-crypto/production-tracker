@@ -155,48 +155,42 @@ function getTicketStatusStyle(status) {
   }
 }
 
-function ProductionLine({ project, records, selectedRecordId, onSelectRecord }) {
-  if (project.trackingType === "Footage based") {
-    const total = Math.max(Number(project.totalFootage || 0), 1);
-    let cursor = 0;
+function ProductionLine({ project, records }) {
+  const progress = getProjectProgress(project, records);
+  const total = Math.max(progress.total || 0, 1);
+  const percent = Math.max(0, Math.min((progress.finished / total) * 100, 100));
 
-    return (
-      <div>
-        <div style={lineLabelRow}>
-          <span>0 ft</span>
-          <span>{formatFeet(total)}</span>
-        </div>
+  const leftLabel =
+    project.trackingType === "Station based"
+      ? project.startStation
+      : "0 ft";
 
-        <div style={lineTrack}>
-          {records.map((record) => {
-            const widthFeet = Number(record.footage || 0);
-            const left = (cursor / total) * 100;
-            const width = (widthFeet / total) * 100;
-            const selected = selectedRecordId === record.id;
-            const segment = (
-              <button
-                key={record.id}
-                type="button"
-                title={`${record.crew}: ${record.footage} ft`}
-                onClick={() => onSelectRecord(record)}
-                style={{
-                  position: "absolute",
-                  left: `${left}%`,
-                  width: `${Math.max(width, 1)}%`,
-                  top: 0,
-                  bottom: 0,
-                  border: selected ? "2px solid #111827" : "none",
-                  background: getCrewColor(record.crew),
-                  borderRadius: 999,
-                  cursor: "pointer",
-                  padding: 0,
-                }}
-              />
-            );
-            cursor += widthFeet;
-            return segment;
-          })}
-        </div>
+  const rightLabel =
+    project.trackingType === "Station based"
+      ? project.endStation
+      : formatFeet(project.totalFootage || 0);
+
+  return (
+    <div>
+      <div style={lineLabelRow}>
+        <span>{leftLabel}</span>
+        <span>{rightLabel}</span>
+      </div>
+
+      <div style={lineTrack}>
+        <div
+          style={{
+            height: "100%",
+            width: `${percent}%`,
+            background: "#22c55e",
+            borderRadius: 999,
+            transition: "width 0.3s ease",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
         <div style={legendRow}>
           {Object.keys(getCrewSummary(records)).map((crew) => (
@@ -706,8 +700,6 @@ export default function App() {
               <ProductionLine
                 project={displayProject}
                 records={projectRecords}
-                selectedRecordId={selectedRecordId}
-                onSelectRecord={(record) => setSelectedRecordId(record.id)}
               />
             </div>
           </div>
